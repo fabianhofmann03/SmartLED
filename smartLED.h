@@ -22,6 +22,7 @@ class SmartLED {
     bool blink;
     bool fadeOn;
     bool once;
+    int outp;
   public:
     SmartLED(int pin);
     void setOn(int);
@@ -32,8 +33,8 @@ class SmartLED {
     void setPulse(unsigned long, unsigned long);
     void setPulse(float, float);
     void setPulse();
-    void updateLED(int, int);
-    void updateLED();
+    int updateLED(int, int);
+    int updateLED();
     float fade(float, float, float, float);
     void setPulseFade(unsigned long, unsigned long);
     void setPulseFade(float, float);

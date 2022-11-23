@@ -7,7 +7,7 @@
 
 ******************************/
 
-#include "SmartLED.h"
+#include "smartLED.h"
 
 SmartLED::SmartLED(int pin) {
   this->pin = pin;
@@ -19,10 +19,12 @@ SmartLED::SmartLED(int pin) {
   startTime = 0;
 }
 void SmartLED::setOn(int brightLow) {
+  outp = brightLow;
   analogWrite(pin, brightLow);
   ledState = HIGH;
 }
 void SmartLED::setOff(int brightHigh) {
+  outp = brightHigh;
   analogWrite(pin, brightHigh);
   ledState = LOW;
 }
@@ -60,7 +62,7 @@ void SmartLED::setPulse(float dutyCycle, float frequency) {
   blink = true;
   startTime = millis();
   (*this).tOn = 1000 * dutyCycle / (frequency * (dutyCycle + 1));
-  (*this).tOff = 1000 / (frequency * (dutyCycle + 1));
+  (*this).tOff = 1000 * (1 - dutyCycle)/ (frequency * (dutyCycle + 1));
   zaehlerOn = zaehlerOff = 0;
 }
 
@@ -89,7 +91,7 @@ void SmartLED::setPulseFade(float dutyCycle, float frequency) {
   fadeOn = true;
   startTime = millis();
   tOn = 1000 * dutyCycle / (frequency * (dutyCycle + 1));
-  tOff = 1000 / (frequency * (dutyCycle + 1));
+  tOff = 1000 * (1 - dutyCycle) / (frequency * (dutyCycle + 1));
   zaehlerOn = zaehlerOff = 0;
 }
 
@@ -102,14 +104,14 @@ void SmartLED::setPulseFade() {
   zaehlerOn = zaehlerOff = 0;
 }
 
-void SmartLED::setFade(unsigned long t, bool up) {
+void SmartLED::setFade(unsigned long t, bool down) {
   (*this).stop();
   blink = true;
   once = true;
   fadeOn = true;
   startTime = millis();
   tOn = tOff = t;
-  if(up) {
+  if(down) {
     setOff(0);
     zaehlerOn = 1;
     zaehlerOff = 0;
@@ -121,14 +123,14 @@ void SmartLED::setFade(unsigned long t, bool up) {
   }
 }
 
-void SmartLED::setFade(bool up) {
+void SmartLED::setFade(bool down) {
   (*this).stop();
   blink = true;
   once = true;
   fadeOn = true;
   startTime = millis();
   tOn = tOff = 500;
-  if(up) {
+  if(down) {
     setOff(0);
     zaehlerOn = 1;
     zaehlerOff = 0;
@@ -146,80 +148,60 @@ float SmartLED::fade(float start, float from, float to, float timeT) {
 
 //-------------------------------------------------------------
 
-void SmartLED::updateLED(int brightHigh, int brightLow) {
+int SmartLED::updateLED(int brightHigh, int brightLow) {
   if (blink == true) {
     if (ledState) {
       if (fadeOn) {
-        Serial.println("Test2");
         if (millis() < startTime + tOn * zaehlerOn + tOff * zaehlerOff) {
-          setOn(255 - fade(startTime + tOn * (zaehlerOn - 1) + tOff * zaehlerOff, brightHigh, brightLow, tOn));
+          setOn(fade(startTime + tOn * (zaehlerOn - 1) + tOff * zaehlerOff, brightHigh, brightLow, tOn));
         }
-        Serial.print("Brightness: ");
-        Serial.println(255 - fade(startTime + tOn * (zaehlerOn - 1) + tOff * zaehlerOff, brightHigh, brightLow, tOn));
-
       }
       if (millis() > startTime + tOn * zaehlerOn + tOff * zaehlerOff) {
         if(once) stop();
-        Serial.println("Set off");
-        setOff(255 - brightLow);
+        setOff(brightLow);
         zaehlerOff ++;
-        Serial.println("----------------------------------");
       }
     } else {
       if (fadeOn) {
-        Serial.println("Test3");
         if (millis() < startTime + tOn * zaehlerOn + tOff * zaehlerOff) {
-          setOff(255 - fade(startTime + tOn * zaehlerOn + tOff * (zaehlerOff - 1), brightLow, brightHigh, tOff));
+          setOff(fade(startTime + tOn * zaehlerOn + tOff * (zaehlerOff - 1), brightLow, brightHigh, tOff));
         }
-        Serial.print("Brightness: ");
-        Serial.println(255 - fade(startTime + tOn * zaehlerOn + tOff * (zaehlerOff - 1), brightLow, brightHigh, tOff));
       }
       if (millis() > startTime + tOn * zaehlerOn + tOff * zaehlerOff) {
         if(once) stop();
-        Serial.println("Set on");
-        setOn(255 - brightHigh);
+        setOn(brightHigh);
         zaehlerOn ++;
-        Serial.println("----------------------------------");
       }
     }
   }
+  return outp;
 }
 
-void SmartLED::updateLED() {
+int SmartLED::updateLED() {
   if (blink == true) {
     if (ledState) {
       if (fadeOn) {
-        Serial.println("Test2");
         if (millis() < startTime + tOn * zaehlerOn + tOff * zaehlerOff) {
-          setOn(255 - fade(startTime + tOn * (zaehlerOn - 1) + tOff * zaehlerOff, 255, 0, tOn));
+          setOn(fade(startTime + tOn * (zaehlerOn - 1) + tOff * zaehlerOff, 255, 0, tOn));
         }
-        Serial.print("Brightness: ");
-        Serial.println(255 - fade(startTime + tOn * (zaehlerOn - 1) + tOff * zaehlerOff, 255, 0, tOn));
-
       }
       if (millis() > startTime + tOn * zaehlerOn + tOff * zaehlerOff) {
         if(once) stop();
-        Serial.println("Set off");
-        setOff(255);
+        setOff(0);
         zaehlerOff ++;
-        Serial.println("----------------------------------");
       }
     } else {
       if (fadeOn) {
-        Serial.println("Test3");
         if (millis() < startTime + tOn * zaehlerOn + tOff * zaehlerOff) {
-          setOff(255 - fade(startTime + tOn * zaehlerOn + tOff * (zaehlerOff - 1), 0, 255, tOff));
+          setOff(fade(startTime + tOn * zaehlerOn + tOff * (zaehlerOff - 1), 0, 255, tOff));
         }
-        Serial.print("Brightness: ");
-        Serial.println(255 - fade(startTime + tOn * zaehlerOn + tOff * (zaehlerOff - 1), 0, 255, tOff));
       }
       if (millis() > startTime + tOn * zaehlerOn + tOff * zaehlerOff) {
         if(once) stop();
-        Serial.println("Set on");
-        setOn(0);
+        setOn(255);
         zaehlerOn ++;
-        Serial.println("----------------------------------");
       }
     }
   }
+  return outp;
 }
